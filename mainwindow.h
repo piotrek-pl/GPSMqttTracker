@@ -18,6 +18,9 @@ public:
     explicit MainWindow(QMqttClient *client, QWidget *parent = nullptr); // Nowy konstruktor
     ~MainWindow();
 
+private slots:
+    void cleanup(); // Metoda czyszcząca
+
 private:
     Ui::MainWindow *ui;
     QWebEngineView *view;

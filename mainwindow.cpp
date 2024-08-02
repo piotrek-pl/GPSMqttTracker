@@ -11,6 +11,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Załaduj plik HTML zawierający mapę Google z zasobów
     view->setUrl(QUrl("qrc:/map.html"));
+
+    connect(qApp, &QCoreApplication::aboutToQuit, this, &MainWindow::cleanup);
 }
 
 MainWindow::MainWindow(QMqttClient *client, QWidget *parent)
@@ -23,9 +25,22 @@ MainWindow::MainWindow(QMqttClient *client, QWidget *parent)
 
     // Załaduj plik HTML zawierający mapę Google z zasobów
     view->setUrl(QUrl("qrc:/map.html"));
+
+    connect(qApp, &QCoreApplication::aboutToQuit, this, &MainWindow::cleanup);
+}
+
+void MainWindow::cleanup()
+{
+    // Czyszczenie widoku i jego strony
+    if (view) {
+        view->setPage(nullptr);
+        delete view;
+        view = nullptr;
+    }
 }
 
 MainWindow::~MainWindow()
 {
+    cleanup(); // Upewnij się, że widok jest wyczyszczony
     delete ui;
 }

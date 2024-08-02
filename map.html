@@ -2,7 +2,9 @@
 <html>
 <head>
     <title>Google Map</title>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB8KHhBQ3Xcl0MRXwxh1DBoHjNH1ALCIuQ&callback=initMap" async defer></script>
+    <script async
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB8KHhBQ3Xcl0MRXwxh1DBoHjNH1ALCIuQ&callback=initMap&libraries=places&loading=async">
+    </script>
     <script type="text/javascript">
         function initMap() {
             var mapOptions = {

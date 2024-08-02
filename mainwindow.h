@@ -2,17 +2,26 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QtMqtt/QMqttClient>
+#include <QWebEngineView>
+#include <QMqttClient>
 
-class MainWindow : public QMainWindow {
+QT_BEGIN_NAMESPACE
+namespace Ui { class MainWindow; }
+QT_END_NAMESPACE
+
+class MainWindow : public QMainWindow
+{
     Q_OBJECT
 
 public:
-    MainWindow(QMqttClient *client, QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr); // Deklaracja domyślnego konstruktora
+    explicit MainWindow(QMqttClient *client, QWidget *parent = nullptr); // Nowy konstruktor
     ~MainWindow();
 
 private:
-    QMqttClient *mqttClient;
+    Ui::MainWindow *ui;
+    QWebEngineView *view;
+    QMqttClient *mqttClient; // Przechowywanie wskaźnika do QMqttClient
 };
 
 #endif // MAINWINDOW_H

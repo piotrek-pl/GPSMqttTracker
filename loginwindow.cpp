@@ -43,8 +43,10 @@ LoginWindow::~LoginWindow() {
 }
 
 void LoginWindow::onConnectButtonClicked() {
-    username = usernameLineEdit->text();
-    password = passwordLineEdit->text();
+    //username = usernameLineEdit->text();
+    //password = passwordLineEdit->text();
+    username = "sub1";
+    password = "a4Yg3u8W";
 
     mqttClient->setHostname(HOSTNAME);
     mqttClient->setPort(PORT);

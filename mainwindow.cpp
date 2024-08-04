@@ -1,5 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <QTabWidget>
+#include <QVBoxLayout>
+#include <QIcon>
+#include <QFile>
 
 const int MainWindow::connectionTimeout = 5; // Inicjalizacja zmiennej statycznej
 
@@ -8,11 +12,40 @@ MainWindow::MainWindow(QMqttClient *client, QWidget *parent)
 {
     ui->setupUi(this);
 
+    // Ustaw tytuł okna
+    setWindowTitle("GPS Tracker");
+
+    // Ustaw ikonę okna
+    setWindowIcon(QIcon(":/img/icon.png"));
+
+    // Załaduj styl z pliku .qss
+    QFile file(":/styles.qss");
+    if (file.open(QFile::ReadOnly)) {
+        QString styleSheet = QLatin1String(file.readAll());
+        qApp->setStyleSheet(styleSheet);
+        file.close();
+    }
+
+    // Tworzenie QTabWidget i zakładek
+    tabWidget = new QTabWidget(this);
+    liveTrackingTab = new QWidget();
+    timelineTab = new QWidget();
+
+    // Ustawianie layoutu dla zakładki Live Tracking
+    QVBoxLayout *liveTrackingLayout = new QVBoxLayout(liveTrackingTab);
     view = new QWebEngineView(this);
-    setCentralWidget(view);
+    liveTrackingLayout->addWidget(view);
+    liveTrackingTab->setLayout(liveTrackingLayout);
+
+    // Dodawanie zakładek do QTabWidget
+    tabWidget->addTab(liveTrackingTab, "Live Tracking");
+    tabWidget->addTab(timelineTab, "Timeline");
+
+    // Ustawianie QTabWidget jako centralny widget
+    setCentralWidget(tabWidget);
 
     // Załaduj plik HTML zawierający mapę Google z zasobów
-    view->setUrl(QUrl("qrc:/map.html"));
+    view->setUrl(QUrl("qrc:/html/map.html"));
 
     connect(qApp, &QCoreApplication::aboutToQuit, this, &MainWindow::cleanup);
 

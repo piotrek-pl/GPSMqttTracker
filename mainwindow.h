@@ -8,6 +8,7 @@
 #include <QMqttMessage>
 #include <QTimer>
 #include <QDateTime>
+#include <QTabWidget>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -34,7 +35,11 @@ private:
     QMqttSubscription *subscription; // Subskrypcja tematu
     QTimer *timer; // Timer do sprawdzania statusu połączenia
     QDateTime lastMessageTime; // Czas ostatniego odebranego sygnału
-    static const int connectionTimeout; // Deklaracja zmiennej statycznej
+    static const int connectionTimeout; // Czas sprawdzania statusu połączenia w sekundach
+
+    QTabWidget *tabWidget; // Zakładki
+    QWidget *liveTrackingTab; // Zakładka Live Tracking
+    QWidget *timelineTab; // Zakładka Timeline
 };
 
 #endif // MAINWINDOW_H

@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
-        <file>map.html</file>
+        <file>html/map.html</file>
+        <file>img/icon.png</file>
+        <file>styles.qss</file>
     </qresource>
 </RCC>

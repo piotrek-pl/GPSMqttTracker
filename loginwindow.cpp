@@ -1,4 +1,5 @@
 #include "loginwindow.h"
+#include "mainwindow.h"
 
 const QString HOSTNAME = "51.20.193.191"; // Ustawienie hostname na sztywno
 const int PORT = 1883; // Ustawienie portu na sztywno

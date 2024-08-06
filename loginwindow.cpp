@@ -45,19 +45,20 @@ LoginWindow::~LoginWindow() {
 void LoginWindow::onConnectButtonClicked() {
     //username = usernameLineEdit->text();
     //password = passwordLineEdit->text();
-    username = "sub1";
-    password = "a4Yg3u8W";
+    mqttUsername = "sub1";
+    mqttPassword = "a4Yg3u8W";
 
-    mqttClient->setHostname(HOSTNAME);
+    mqttClient->setHostname(HOSTNAME); // Stały hostname
     mqttClient->setPort(PORT);
-    mqttClient->setUsername(username);
-    mqttClient->setPassword(password);
+    mqttClient->setUsername(mqttUsername);
+    mqttClient->setPassword(mqttPassword);
 
     mqttClient->connectToHost();
 }
 
 void LoginWindow::onConnected() {
-    mainWindow = new MainWindow(mqttClient);
+    // Przekaż dane logowania do MainWindow
+    mainWindow = new MainWindow(mqttClient, mqttUsername, mqttPassword);
     mainWindow->show();
     this->close();
 }

@@ -4,11 +4,20 @@
 #include <QVBoxLayout>
 #include <QIcon>
 #include <QFile>
+#include <QSqlError>
+#include <QMessageBox>
 
 const int MainWindow::connectionTimeout = 5; // Inicjalizacja zmiennej statycznej
+const QString MainWindow::DATABASE_NAME = "GPS"; // Stała dla nazwy bazy danych
 
-MainWindow::MainWindow(QMqttClient *client, QWidget *parent)
-    : QMainWindow(parent), mqttClient(client), ui(new Ui::MainWindow), subscription(nullptr), timer(new QTimer(this))
+MainWindow::MainWindow(QMqttClient *client, const QString &username, const QString &password, QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+    , mqttClient(client)
+    , dbUsername(username)
+    , dbPassword(password)
+    , subscription(nullptr)
+    , timer(new QTimer(this))
 {
     ui->setupUi(this);
 
@@ -60,6 +69,9 @@ MainWindow::MainWindow(QMqttClient *client, QWidget *parent)
     // Skonfiguruj timer do sprawdzania statusu połączenia
     connect(timer, &QTimer::timeout, this, &MainWindow::checkConnectionStatus);
     timer->start(1000); // Sprawdzaj co sekundę
+
+    // Podłącz slot do zmiany zakładki
+    connect(tabWidget, &QTabWidget::currentChanged, this, &MainWindow::onTabIndexChanged);
 }
 
 void MainWindow::cleanup()
@@ -124,5 +136,63 @@ void MainWindow::checkConnectionStatus()
     if (lastMessageTime.isValid() && lastMessageTime.secsTo(QDateTime::currentDateTime()) > connectionTimeout) {
         QString scriptShowMessage = "showDisconnectedMessage();";
         view->page()->runJavaScript(scriptShowMessage);
+    }
+}
+
+void MainWindow::connectToDatabase()
+{
+    QString connectionName = "gps_connection";
+
+    // Sprawdź, czy połączenie o tej nazwie już istnieje
+    if (QSqlDatabase::contains(connectionName)) {
+        db = QSqlDatabase::database(connectionName);
+    } else {
+        // Stwórz nowe połączenie
+        db = QSqlDatabase::addDatabase("QMYSQL", connectionName);
+        db.setHostName("51.20.193.191");
+        db.setDatabaseName(DATABASE_NAME);
+        db.setUserName(dbUsername);
+        db.setPassword(dbPassword);
+    }
+
+    if (!db.open()) {
+        QMessageBox::critical(this, "Database Error", "Could not connect to the database. " + db.lastError().text());
+        return;
+    }
+    QMessageBox::information(this, "Database Connection", "Database connected successfully.");
+
+}
+
+void MainWindow::disconnectFromDatabase()
+{
+    QString connectionName = "gps_connection";
+
+    if (QSqlDatabase::contains(connectionName)) {
+        {
+            // Pobierz połączenie z bazą danych
+            QSqlDatabase db = QSqlDatabase::database(connectionName);
+
+            // Sprawdź, czy połączenie jest otwarte
+            if (db.isOpen()) {
+                db.close();
+                qDebug() << "Database connection closed.";
+            }
+        }
+
+        // Po wyjściu z bloku powyżej, obiekt db jest niszczony
+        // Usuń połączenie z bazy danych
+        db = QSqlDatabase::database(); // usuniecie uchwytow QSqlDatabase
+                                       // konieczne przed usunieciem!
+        QSqlDatabase::removeDatabase(connectionName);
+        qDebug() << "Database connection removed.";
+    }
+}
+
+void MainWindow::onTabIndexChanged(int index)
+{
+    if (index == 1) { // Zakładka Timeline ma indeks 1
+        connectToDatabase();
+    } else {
+        disconnectFromDatabase();
     }
 }

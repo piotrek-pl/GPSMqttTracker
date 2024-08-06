@@ -17,8 +17,8 @@ public:
     LoginWindow(QWidget *parent = nullptr);
     ~LoginWindow();
 
-    QString getUsername() const { return username; }
-    QString getPassword() const { return password; }
+    QString getUsername() const { return mqttUsername; }
+    QString getPassword() const { return mqttPassword; }
 
 protected:
     bool event(QEvent *event) override;
@@ -33,8 +33,8 @@ private:
     QLineEdit *passwordLineEdit;
     QPushButton *connectButton;
 
-    QString username;
-    QString password;
+    QString mqttUsername;
+    QString mqttPassword;
 
     QMqttClient *mqttClient;
     MainWindow *mainWindow;

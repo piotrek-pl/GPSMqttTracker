@@ -10,6 +10,8 @@
 #include <QDateTime>
 #include <QTabWidget>
 #include <QSqlDatabase>
+#include <QCalendarWidget>
+#include <QVBoxLayout>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -42,6 +44,9 @@ private:
     QTabWidget *tabWidget; // Zakładki
     QWidget *liveTrackingTab; // Zakładka Live Tracking
     QWidget *timelineTab; // Zakładka Timeline
+
+    QVBoxLayout *timelineLayout; // Layout dla zakładki Timeline
+    QCalendarWidget *calendarWidget; // Kalendarz do zakładki Timeline
 
     QSqlDatabase db; // Połączenie z bazą danych
     QString dbUsername;

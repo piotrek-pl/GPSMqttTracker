@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QSqlError>
 #include <QMessageBox>
+#include <QCalendarWidget>
 
 const int MainWindow::connectionTimeout = 5; // Inicjalizacja zmiennej statycznej
 const QString MainWindow::DATABASE_NAME = "GPS"; // Stała dla nazwy bazy danych
@@ -18,6 +19,7 @@ MainWindow::MainWindow(QMqttClient *client, const QString &username, const QStri
     , dbPassword(password)
     , subscription(nullptr)
     , timer(new QTimer(this))
+    , calendarWidget(new QCalendarWidget(this))
 {
     ui->setupUi(this);
 
@@ -45,6 +47,12 @@ MainWindow::MainWindow(QMqttClient *client, const QString &username, const QStri
     view = new QWebEngineView(this);
     liveTrackingLayout->addWidget(view);
     liveTrackingTab->setLayout(liveTrackingLayout);
+
+    // Ustawianie layoutu dla zakładki Timeline
+    timelineLayout = new QVBoxLayout(timelineTab);
+    calendarWidget->setVisible(false); // Początkowo ukryj kalendarz
+    timelineLayout->addWidget(calendarWidget);
+    timelineTab->setLayout(timelineLayout);
 
     // Dodawanie zakładek do QTabWidget
     tabWidget->addTab(liveTrackingTab, "Live Tracking");
@@ -156,11 +164,12 @@ void MainWindow::connectToDatabase()
     }
 
     if (!db.open()) {
-        QMessageBox::critical(this, "Database Error", "Could not connect to the database. " + db.lastError().text());
+        QMessageBox::critical(this, "Błąd bazy danych", "Nie można połączyć się z bazą danych. " + db.lastError().text());
         return;
     }
-    QMessageBox::information(this, "Database Connection", "Database connected successfully.");
 
+    // Po udanym połączeniu z bazą danych, pokaż kalendarz
+    calendarWidget->setVisible(true);
 }
 
 void MainWindow::disconnectFromDatabase()
@@ -175,17 +184,20 @@ void MainWindow::disconnectFromDatabase()
             // Sprawdź, czy połączenie jest otwarte
             if (db.isOpen()) {
                 db.close();
-                qDebug() << "Database connection closed.";
+                qDebug() << "Połączenie z bazą danych zostało zamknięte.";
             }
         }
 
         // Po wyjściu z bloku powyżej, obiekt db jest niszczony
         // Usuń połączenie z bazy danych
-        db = QSqlDatabase::database(); // usuniecie uchwytow QSqlDatabase
-                                       // konieczne przed usunieciem!
+        db = QSqlDatabase::database(); // usunięcie uchwytów QSqlDatabase
+                                       // konieczne przed usunięciem!
         QSqlDatabase::removeDatabase(connectionName);
-        qDebug() << "Database connection removed.";
+        qDebug() << "Połączenie z bazą danych zostało usunięte.";
     }
+
+    // Po rozłączeniu z bazą danych, ukryj kalendarz
+    calendarWidget->setVisible(false);
 }
 
 void MainWindow::onTabIndexChanged(int index)

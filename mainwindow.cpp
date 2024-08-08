@@ -6,7 +6,11 @@
 #include <QFile>
 #include <QSqlError>
 #include <QMessageBox>
-#include <QCalendarWidget>
+#include <QTextCharFormat>
+#include <QSqlQuery>
+#include <QDateTime>
+#include <QTimeZone>
+#include <QDebug>
 
 const int MainWindow::connectionTimeout = 5; // Inicjalizacja zmiennej statycznej
 const QString MainWindow::DATABASE_NAME = "GPS"; // Stała dla nazwy bazy danych
@@ -80,6 +84,12 @@ MainWindow::MainWindow(QMqttClient *client, const QString &username, const QStri
 
     // Podłącz slot do zmiany zakładki
     connect(tabWidget, &QTabWidget::currentChanged, this, &MainWindow::onTabIndexChanged);
+
+    // Podłącz sygnał zmiany miesiąca w kalendarzu
+    connect(calendarWidget, &QCalendarWidget::currentPageChanged, this, &MainWindow::onCurrentPageChanged);
+
+    // Podłącz sygnał kliknięcia w kalendarzu
+    connect(calendarWidget, &QCalendarWidget::clicked, this, &MainWindow::onDateClicked);
 }
 
 void MainWindow::cleanup()
@@ -170,6 +180,10 @@ void MainWindow::connectToDatabase()
 
     // Po udanym połączeniu z bazą danych, pokaż kalendarz
     calendarWidget->setVisible(true);
+
+    // Zaktualizuj kalendarz na podstawie wybranego miesiąca
+    QDate currentDate = calendarWidget->selectedDate();
+    updateCalendar(currentDate.year(), currentDate.month());
 }
 
 void MainWindow::disconnectFromDatabase()
@@ -206,5 +220,90 @@ void MainWindow::onTabIndexChanged(int index)
         connectToDatabase();
     } else {
         disconnectFromDatabase();
+    }
+}
+
+QDateTime MainWindow::convertUtcToLocal(const QDateTime &utcDateTime) {
+    QTimeZone timeZone("Europe/Warsaw"); // Polska strefa czasowa
+    return utcDateTime.toTimeZone(timeZone);
+}
+
+QSet<QDate> MainWindow::getDatesFromDatabase(int year, int month)
+{
+    QSet<QDate> dates;
+    QSqlQuery query(db);
+
+    // Tworzenie zapytania SQL do pobierania dat dla wybranego miesiąca i roku
+    QString queryString = QString("SELECT DISTINCT `date` FROM `client1` WHERE YEAR(`date`) = %1 AND MONTH(`date`) = %2").arg(year).arg(month);
+
+    if (query.exec(queryString)) {
+        while (query.next()) {
+            QDateTime utcDateTime = query.value(0).toDateTime();
+            QDateTime localDateTime = convertUtcToLocal(utcDateTime);
+            dates.insert(localDateTime.date());
+        }
+    } else {
+        qDebug() << "Błąd podczas wykonywania zapytania SQL: " << query.lastError().text();
+    }
+
+    return dates;
+}
+
+void MainWindow::updateCalendar(int year, int month)
+{
+    availableDates = getDatesFromDatabase(year, month);
+
+    QTextCharFormat availableFormat;
+    availableFormat.setBackground(Qt::yellow); // Ustaw kolor tła na żółty
+
+    QTextCharFormat unavailableFormat;
+    unavailableFormat.setForeground(Qt::gray);
+
+    // Iteracja po wszystkich dniach w miesiącu
+    QDate firstDayOfMonth(year, month, 1);
+    QDate lastDayOfMonth = firstDayOfMonth.addMonths(1).addDays(-1);
+
+    for (QDate date = firstDayOfMonth; date <= lastDayOfMonth; date = date.addDays(1)) {
+        if (availableDates.contains(date)) {
+            calendarWidget->setDateTextFormat(date, availableFormat);
+        } else {
+            calendarWidget->setDateTextFormat(date, unavailableFormat);
+        }
+    }
+
+    disableUnavailableDates();
+}
+
+void MainWindow::disableUnavailableDates()
+{
+    // Wyłącz niedostępne daty
+    QList<QDate> allDates;
+    QDate firstDayOfMonth = calendarWidget->selectedDate().addMonths(-1);
+    QDate lastDayOfMonth = calendarWidget->selectedDate().addMonths(2);
+
+    for (QDate date = firstDayOfMonth; date <= lastDayOfMonth; date = date.addDays(1)) {
+        allDates.append(date);
+    }
+
+    for (const QDate &date : allDates) {
+        if (!availableDates.contains(date)) {
+            QTextCharFormat format;
+            format.setForeground(Qt::gray);
+            calendarWidget->setDateTextFormat(date, format);
+        }
+    }
+}
+
+void MainWindow::onCurrentPageChanged(int year, int month)
+{
+    updateCalendar(year, month);
+}
+
+void MainWindow::onDateClicked(const QDate &date)
+{
+    if (!availableDates.contains(date)) {
+        // Wyczyść zaznaczenie i wyświetl komunikat ostrzegawczy, jeśli wybrana data jest niedostępna
+        calendarWidget->setSelectedDate(QDate()); // Wyczyść zaznaczenie
+        QMessageBox::warning(this, "Niepoprawny wybór", "Wybrany dzień nie jest dostępny.");
     }
 }

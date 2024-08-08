@@ -12,6 +12,7 @@
 #include <QSqlDatabase>
 #include <QCalendarWidget>
 #include <QVBoxLayout>
+#include <QSet>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -31,6 +32,8 @@ private slots:
     void checkConnectionStatus(); // Slot do sprawdzania statusu połączenia
     void onDisconnected(); // Slot do obsługi rozłączenia
     void onTabIndexChanged(int index); // Slot do zmiany zakładki
+    void onCurrentPageChanged(int year, int month); // Slot do zmiany miesiąca w kalendarzu
+    void onDateClicked(const QDate &date); // Slot do obsługi kliknięcia w datę
 
 private:
     Ui::MainWindow *ui;
@@ -53,8 +56,14 @@ private:
     QString dbPassword;
     static const QString DATABASE_NAME; // Stała dla nazwy bazy danych
 
+    QSet<QDate> availableDates; // Zbiór dostępnych dat
+
     void connectToDatabase();
     void disconnectFromDatabase();
+    QSet<QDate> getDatesFromDatabase(int year, int month); // Funkcja pobierająca daty z bazy danych
+    void updateCalendar(int year, int month); // Funkcja aktualizująca kalendarz
+    QDateTime convertUtcToLocal(const QDateTime &utcDateTime); // Funkcja konwertująca czas z UTC na czas lokalny
+    void disableUnavailableDates(); // Funkcja wyłączająca niedostępne daty
 };
 
 #endif // MAINWINDOW_H

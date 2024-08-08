@@ -259,15 +259,29 @@ void MainWindow::updateCalendar(int year, int month)
     QTextCharFormat unavailableFormat;
     unavailableFormat.setForeground(Qt::gray);
 
+    QTextCharFormat currentDayFormat;
+    currentDayFormat.setFontWeight(QFont::Bold); // Pogrubiona czcionka dla bieżącego dnia
+
+    QDate currentDate = QDate::currentDate();
+
     // Iteracja po wszystkich dniach w miesiącu
     QDate firstDayOfMonth(year, month, 1);
     QDate lastDayOfMonth = firstDayOfMonth.addMonths(1).addDays(-1);
 
     for (QDate date = firstDayOfMonth; date <= lastDayOfMonth; date = date.addDays(1)) {
-        if (availableDates.contains(date)) {
-            calendarWidget->setDateTextFormat(date, availableFormat);
+        if (date == currentDate) {
+            if (availableDates.contains(date)) {
+                currentDayFormat.setBackground(Qt::yellow); // Żółte tło dla bieżącego dnia z danymi
+            } else {
+                currentDayFormat.setBackground(Qt::white); // Białe tło dla bieżącego dnia bez danych
+            }
+            calendarWidget->setDateTextFormat(date, currentDayFormat);
         } else {
-            calendarWidget->setDateTextFormat(date, unavailableFormat);
+            if (availableDates.contains(date)) {
+                calendarWidget->setDateTextFormat(date, availableFormat);
+            } else {
+                calendarWidget->setDateTextFormat(date, unavailableFormat);
+            }
         }
     }
 
@@ -276,20 +290,18 @@ void MainWindow::updateCalendar(int year, int month)
 
 void MainWindow::disableUnavailableDates()
 {
-    // Wyłącz niedostępne daty
-    QList<QDate> allDates;
     QDate firstDayOfMonth = calendarWidget->selectedDate().addMonths(-1);
     QDate lastDayOfMonth = calendarWidget->selectedDate().addMonths(2);
+    QDate currentDate = QDate::currentDate();
+
+    QTextCharFormat unavailableFormat;
+    unavailableFormat.setForeground(Qt::gray);
 
     for (QDate date = firstDayOfMonth; date <= lastDayOfMonth; date = date.addDays(1)) {
-        allDates.append(date);
-    }
-
-    for (const QDate &date : allDates) {
         if (!availableDates.contains(date)) {
-            QTextCharFormat format;
-            format.setForeground(Qt::gray);
-            calendarWidget->setDateTextFormat(date, format);
+            if (date != currentDate) {
+                calendarWidget->setDateTextFormat(date, unavailableFormat);
+            }
         }
     }
 }
@@ -305,5 +317,8 @@ void MainWindow::onDateClicked(const QDate &date)
         // Wyczyść zaznaczenie i wyświetl komunikat ostrzegawczy, jeśli wybrana data jest niedostępna
         calendarWidget->setSelectedDate(QDate()); // Wyczyść zaznaczenie
         QMessageBox::warning(this, "Niepoprawny wybór", "Wybrany dzień nie jest dostępny.");
+    } else {
+        // Wyświetl komunikat, że strona jest w budowie dla dostępnych dni
+        QMessageBox::information(this, "Informacja", "Strona w budowie");
     }
 }

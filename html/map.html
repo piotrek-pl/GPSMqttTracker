@@ -8,6 +8,8 @@
     <script type="text/javascript">
         let map;
         let marker;
+        let pathCoordinates = [];
+        let polyline;
 
         function initMap() {
             const initialPosition = { lat: 51.812859, lng: 19.501045 }; // Initial map center
@@ -34,6 +36,29 @@
             map.setCenter(newPosition);
             hideDisconnectedMessage(); // Hide the disconnected message
             hideUnknownLocationMessage(); // Hide the unknown location message
+        }
+
+        window.drawPath = function(coordinates) {
+            // Clear existing path if any
+            if (polyline) {
+                polyline.setMap(null);
+            }
+
+            pathCoordinates = coordinates.map(coord => {
+                return { lat: coord[0], lng: coord[1] };
+            });
+
+            polyline = new google.maps.Polyline({
+                path: pathCoordinates,
+                geodesic: true,
+                strokeColor: '#FF0000',
+                strokeOpacity: 1.0,
+                strokeWeight: 2
+            });
+
+            polyline.setMap(map);
+            map.setCenter(pathCoordinates[0]); // Center the map on the first coordinate
+            map.setZoom(12); // Adjust zoom level as necessary
         }
 
         window.showDisconnectedMessage = function() {

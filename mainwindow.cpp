@@ -24,6 +24,8 @@ MainWindow::MainWindow(QMqttClient *client, const QString &username, const QStri
     , subscription(nullptr)
     , timer(new QTimer(this))
     , calendarWidget(new QCalendarWidget(this))
+    , view(new QWebEngineView(this)) // Widok dla zakładki Live Tracking
+    , viewTimeline(new QWebEngineView(this)) // Widok dla zakładki Timeline
 {
     ui->setupUi(this);
 
@@ -90,22 +92,40 @@ MainWindow::MainWindow(QMqttClient *client, const QString &username, const QStri
 
     // Podłącz sygnał kliknięcia w kalendarzu
     connect(calendarWidget, &QCalendarWidget::clicked, this, &MainWindow::onDateClicked);
+
+    // Na początku upewnij się, że mapa nie jest dodana do layoutu
+    viewTimeline->setVisible(false);
+}
+
+MainWindow::~MainWindow()
+{
+    // Upewnij się, że widoki QWebEngineView są usuwane przed usunięciem profilu
+    cleanup();
+
+    // Usuń ręcznie widoki QWebEngineView i ustaw je na nullptr
+    if (view) {
+        delete view;
+        view = nullptr;
+    }
+
+    if (viewTimeline) {
+        delete viewTimeline;
+        viewTimeline = nullptr;
+    }
+
+    delete ui;
 }
 
 void MainWindow::cleanup()
 {
     // Czyszczenie widoku i jego strony
     if (view) {
-        view->setPage(nullptr);
-        delete view;
-        view = nullptr;
+        view->setPage(nullptr); // Usuń stronę przed usunięciem widoku
     }
-}
 
-MainWindow::~MainWindow()
-{
-    cleanup(); // Upewnij się, że widok jest wyczyszczony
-    delete ui;
+    if (viewTimeline) {
+        viewTimeline->setPage(nullptr); // Usuń stronę przed usunięciem widoku
+    }
 }
 
 void MainWindow::onMessageReceived(const QMqttMessage &message)
@@ -220,6 +240,13 @@ void MainWindow::onTabIndexChanged(int index)
         connectToDatabase();
     } else {
         disconnectFromDatabase();
+
+        // Ponownie pokaż kalendarz i usuń widok mapy, gdy użytkownik opuści zakładkę Timeline
+        if (timelineLayout->indexOf(viewTimeline) != -1) {
+            timelineLayout->removeWidget(viewTimeline);
+            viewTimeline->setVisible(false); // Ukryj mapę
+        }
+        calendarWidget->setVisible(true); // Pokaż kalendarz
     }
 }
 
@@ -311,14 +338,71 @@ void MainWindow::onCurrentPageChanged(int year, int month)
     updateCalendar(year, month);
 }
 
-void MainWindow::onDateClicked(const QDate &date)
-{
+void MainWindow::onDateClicked(const QDate &date) {
     if (!availableDates.contains(date)) {
         // Wyczyść zaznaczenie i wyświetl komunikat ostrzegawczy, jeśli wybrana data jest niedostępna
         calendarWidget->setSelectedDate(QDate()); // Wyczyść zaznaczenie
         QMessageBox::warning(this, "Niepoprawny wybór", "Wybrany dzień nie jest dostępny.");
     } else {
-        // Wyświetl komunikat, że strona jest w budowie dla dostępnych dni
-        QMessageBox::information(this, "Informacja", "Strona w budowie");
+        // Pobierz trasę z bazy danych
+        QSqlQuery query(db);
+        QString queryString = QString("SELECT latitude, longitude FROM `client1` WHERE DATE(`date`) = '%1' ORDER BY `date` ASC").arg(date.toString("yyyy-MM-dd"));
+
+        QList<QPair<double, double>> coordinates;
+        if (query.exec(queryString)) {
+            while (query.next()) {
+                double latitude = query.value(0).toDouble();
+                double longitude = query.value(1).toDouble();
+                coordinates.append(qMakePair(latitude, longitude));
+            }
+
+            // Przekazanie trasy do widoku HTML
+            if (!coordinates.isEmpty()) {
+                QString script = "drawPath([";
+                for (const auto &coord : coordinates) {
+                    script += QString("[%1, %2],").arg(coord.first).arg(coord.second);
+                }
+                script.chop(1); // Usuń ostatni przecinek
+                script += "]);";
+
+                // Ukryj kalendarz
+                calendarWidget->setVisible(false);
+
+                // Dodaj widok mapy do layoutu
+                viewTimeline->setVisible(true);
+                timelineLayout->addWidget(viewTimeline);
+
+                // Upewnij się, że mapa się załadowała, i uruchom skrypt JavaScript
+                viewTimeline->setUrl(QUrl("qrc:/html/map.html"));
+                connect(viewTimeline, &QWebEngineView::loadFinished, this, [this, script](bool ok) {
+                    if (ok) {
+                        viewTimeline->page()->runJavaScript(script);
+                    } else {
+                        qDebug() << "Nie udało się załadować mapy w zakładce Timeline.";
+                    }
+                });
+
+                // Przełącz się na zakładkę Timeline
+                tabWidget->setCurrentWidget(timelineTab);
+            }
+        }
     }
+}
+
+
+void MainWindow::showMapInTimeline()
+{
+    // Usuń wszystkie widżety z layoutu, zachowując kalendarz
+    QLayoutItem *item;
+    while ((item = timelineLayout->takeAt(0)) != nullptr) {
+        if (item->widget() != calendarWidget) { // Zostaw kalendarz
+            delete item->widget(); // Usuwa widżet
+            delete item; // Usuwa layout item
+        }
+    }
+
+    // Dodaj widok mapy do zakładki "Timeline"
+    timelineLayout->addWidget(viewTimeline);
+    viewTimeline->setUrl(QUrl("qrc:/html/map.html")); // Upewnij się, że widok załadował mapę
+    tabWidget->setCurrentWidget(timelineTab); // Przełącz zakładkę na "Timeline"
 }

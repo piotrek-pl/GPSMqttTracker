@@ -38,6 +38,7 @@ private slots:
 private:
     Ui::MainWindow *ui;
     QWebEngineView *view;
+    QWebEngineView *viewTimeline; // Nowy widok dla zakładki Timeline
     QMqttClient *mqttClient;
     QMqttSubscription *subscription; // Subskrypcja tematu
     QTimer *timer; // Timer do sprawdzania statusu połączenia
@@ -64,6 +65,7 @@ private:
     void updateCalendar(int year, int month); // Funkcja aktualizująca kalendarz
     QDateTime convertUtcToLocal(const QDateTime &utcDateTime); // Funkcja konwertująca czas z UTC na czas lokalny
     void disableUnavailableDates(); // Funkcja wyłączająca niedostępne daty
+    void showMapInTimeline();
 };
 
 #endif // MAINWINDOW_H

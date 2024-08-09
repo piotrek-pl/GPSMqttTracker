@@ -50,7 +50,6 @@ MainWindow::MainWindow(QMqttClient *client, const QString &username, const QStri
 
     // Ustawianie layoutu dla zakładki Live Tracking
     QVBoxLayout *liveTrackingLayout = new QVBoxLayout(liveTrackingTab);
-    view = new QWebEngineView(this);
     liveTrackingLayout->addWidget(view);
     liveTrackingTab->setLayout(liveTrackingLayout);
 

@@ -11,6 +11,8 @@
 #include <QDateTime>
 #include <QTimeZone>
 #include <QDebug>
+#include <QQmlContext>
+#include <QQuickItem>
 
 const int MainWindow::connectionTimeout = 5; // Inicjalizacja zmiennej statycznej
 const QString MainWindow::DATABASE_NAME = "GPS"; // Stała dla nazwy bazy danych
@@ -237,8 +239,23 @@ void MainWindow::onTabIndexChanged(int index)
 {
     if (index == 1) { // Zakładka Timeline ma indeks 1
         connectToDatabase();
+
+        // Sprawdź, czy kalendarz powinien być widoczny
+        if (!calendarWidget->isVisible()) {
+            calendarWidget->setVisible(true);
+        }
+
+        // Ukryj suwak na początku, gdy wchodzimy do zakładki "Timeline"
+        if (slider) {
+            slider->setVisible(false);
+        }
     } else {
         disconnectFromDatabase();
+
+        // Ukryj suwak, jeśli nie jesteśmy na zakładce Timeline
+        if (slider) {
+            slider->setVisible(false);
+        }
 
         // Ponownie pokaż kalendarz i usuń widok mapy, gdy użytkownik opuści zakładkę Timeline
         if (timelineLayout->indexOf(viewTimeline) != -1) {
@@ -248,6 +265,7 @@ void MainWindow::onTabIndexChanged(int index)
         calendarWidget->setVisible(true); // Pokaż kalendarz
     }
 }
+
 
 QDateTime MainWindow::convertUtcToLocal(const QDateTime &utcDateTime) {
     QTimeZone timeZone("Europe/Warsaw"); // Polska strefa czasowa
@@ -337,55 +355,59 @@ void MainWindow::onCurrentPageChanged(int year, int month)
     updateCalendar(year, month);
 }
 
-void MainWindow::onDateClicked(const QDate &date) {
+void MainWindow::onDateClicked(const QDate &date)
+{
     if (!availableDates.contains(date)) {
-        // Wyczyść zaznaczenie i wyświetl komunikat ostrzegawczy, jeśli wybrana data jest niedostępna
-        calendarWidget->setSelectedDate(QDate()); // Wyczyść zaznaczenie
+        // Jeśli wybrana data jest niedostępna, pokaż ostrzeżenie
         QMessageBox::warning(this, "Niepoprawny wybór", "Wybrany dzień nie jest dostępny.");
-    } else {
-        // Pobierz trasę z bazy danych
-        QSqlQuery query(db);
-        QString queryString = QString("SELECT latitude, longitude FROM `client1` WHERE DATE(`date`) = '%1' ORDER BY `date` ASC").arg(date.toString("yyyy-MM-dd"));
-
-        QList<QPair<double, double>> coordinates;
-        if (query.exec(queryString)) {
-            while (query.next()) {
-                double latitude = query.value(0).toDouble();
-                double longitude = query.value(1).toDouble();
-                coordinates.append(qMakePair(latitude, longitude));
-            }
-
-            // Przekazanie trasy do widoku HTML
-            if (!coordinates.isEmpty()) {
-                QString script = "drawPath([";
-                for (const auto &coord : coordinates) {
-                    script += QString("[%1, %2],").arg(coord.first).arg(coord.second);
-                }
-                script.chop(1); // Usuń ostatni przecinek
-                script += "]);";
-
-                // Ukryj kalendarz
-                calendarWidget->setVisible(false);
-
-                // Dodaj widok mapy do layoutu
-                viewTimeline->setVisible(true);
-                timelineLayout->addWidget(viewTimeline);
-
-                // Upewnij się, że mapa się załadowała, i uruchom skrypt JavaScript
-                viewTimeline->setUrl(QUrl("qrc:/html/map.html"));
-                connect(viewTimeline, &QWebEngineView::loadFinished, this, [this, script](bool ok) {
-                    if (ok) {
-                        viewTimeline->page()->runJavaScript(script);
-                    } else {
-                        qDebug() << "Nie udało się załadować mapy w zakładce Timeline.";
-                    }
-                });
-
-                // Przełącz się na zakładkę Timeline
-                tabWidget->setCurrentWidget(timelineTab);
-            }
-        }
+        return;
     }
+
+    // Ukryj kalendarz, bo teraz będzie wyświetlana mapa
+    calendarWidget->setVisible(false);
+
+    // Usuń istniejące widżety (mapa, suwak) z layoutu
+    if (timelineLayout->indexOf(viewTimeline) != -1) {
+        timelineLayout->removeWidget(viewTimeline);
+    }
+    if (slider && timelineLayout->indexOf(slider) != -1) {
+        timelineLayout->removeWidget(slider);
+    }
+
+    // Tworzenie QVBoxLayout, jeśli go jeszcze nie ma
+    QVBoxLayout *vboxLayout = qobject_cast<QVBoxLayout*>(timelineLayout);
+    if (!vboxLayout) {
+        vboxLayout = new QVBoxLayout();
+        timelineTab->setLayout(vboxLayout);
+    }
+
+    // Dodaj mapę do górnej części layoutu z odpowiednią wagą (1)
+    vboxLayout->addWidget(viewTimeline, 1);
+    viewTimeline->setVisible(true);
+    viewTimeline->setUrl(QUrl("qrc:/html/map.html"));
+
+    // Upewnij się, że mapa się załadowała
+    connect(viewTimeline, &QWebEngineView::loadFinished, this, [this, vboxLayout](bool ok) {
+        if (ok) {
+            if (!slider) {
+                slider = new QQuickWidget;
+                slider->setSource(QUrl(QStringLiteral("qrc:/qml/RangeSlider.qml")));
+                slider->setResizeMode(QQuickWidget::SizeRootObjectToView);
+            }
+
+            // Resetuj pozycję suwaka do wartości początkowej (np. 0) przed jego wyświetleniem
+            QObject *sliderObject = slider->rootObject();
+            if (sliderObject) {
+                sliderObject->setProperty("value", 0);
+            }
+
+            // Dodaj suwak poniżej mapy z odpowiednią wagą (0) i stałą wysokością
+            vboxLayout->addWidget(slider, 0);
+            slider->setMinimumHeight(50);  // Stała wysokość suwaka
+            slider->setMaximumHeight(50);  // Zapobiega rozciąganiu suwaka
+            slider->setVisible(true);
+        }
+    });
 }
 
 

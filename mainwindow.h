@@ -13,6 +13,7 @@
 #include <QCalendarWidget>
 #include <QVBoxLayout>
 #include <QSet>
+#include <QQuickWidget>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -58,6 +59,8 @@ private:
     static const QString DATABASE_NAME; // Stała dla nazwy bazy danych
 
     QSet<QDate> availableDates; // Zbiór dostępnych dat
+
+    QQuickWidget *slider = nullptr;
 
     void connectToDatabase();
     void disconnectFromDatabase();

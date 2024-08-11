@@ -3,5 +3,6 @@
         <file>html/map.html</file>
         <file>img/icon.png</file>
         <file>styles.qss</file>
+        <file>qml/RangeSlider.qml</file>
     </qresource>
 </RCC>

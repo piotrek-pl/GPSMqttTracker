@@ -345,23 +345,38 @@ void MainWindow::onDateClicked(const QDate &date) {
 
 void MainWindow::onTabIndexChanged(int index)
 {
-    if (index == 1) {
+    if (index == 1) { // Zakładka "Timeline"
         connectToDatabase();
+
         if (!calendarWidget->isVisible()) {
             calendarWidget->setVisible(true);
         }
+
+        // Ponownie dodaj kalendarz do układu, aby upewnić się, że zostanie prawidłowo przeskalowany
+        if (timelineLayout->indexOf(calendarWidget) == -1) {
+            timelineLayout->insertWidget(0, calendarWidget);
+        }
+
+        // Odśwież układ
+        timelineTab->updateGeometry();
+        timelineTab->adjustSize();
+        timelineLayout->update();
+
         if (slider) {
             slider->setVisible(false);
         }
-    } else {
+    } else { // Inne zakładki
         disconnectFromDatabase();
+
         if (slider) {
             slider->setVisible(false);
         }
+
         if (timelineLayout->indexOf(viewTimeline) != -1) {
             timelineLayout->removeWidget(viewTimeline);
             viewTimeline->setVisible(false);
         }
+
         calendarWidget->setVisible(true);
     }
 }

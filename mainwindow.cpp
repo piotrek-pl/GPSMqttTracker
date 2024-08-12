@@ -386,29 +386,43 @@ void MainWindow::onDateClicked(const QDate &date)
     viewTimeline->setVisible(true);
     viewTimeline->setUrl(QUrl("qrc:/html/map.html"));
 
-    // Upewnij się, że mapa się załadowała
-    connect(viewTimeline, &QWebEngineView::loadFinished, this, [this, vboxLayout](bool ok) {
-        if (ok) {
-            if (!slider) {
-                slider = new QQuickWidget;
-                slider->setSource(QUrl(QStringLiteral("qrc:/qml/RangeSlider.qml")));
-                slider->setResizeMode(QQuickWidget::SizeRootObjectToView);
-            }
+    if (!slider) {
+        slider = new QQuickWidget;
+        slider->setSource(QUrl(QStringLiteral("qrc:/qml/RangeSlider.qml")));
+        slider->setResizeMode(QQuickWidget::SizeRootObjectToView);
 
-            // Resetuj pozycję suwaka do wartości początkowej (np. 0) przed jego wyświetleniem
-            QObject *sliderObject = slider->rootObject();
-            if (sliderObject) {
-                sliderObject->setProperty("value", 0);
-            }
+        // Podłącz sygnał tylko raz
+        connect(slider, &QQuickWidget::statusChanged, this, [this]() {
+            if (slider->status() == QQuickWidget::Ready) {
+                QObject *sliderObject = slider->rootObject();
+                if (sliderObject) {
+                    QMetaObject::invokeMethod(sliderObject, "setFirstValue", Q_ARG(QVariant, QVariant(0)));
+                    QMetaObject::invokeMethod(sliderObject, "setSecondValue", Q_ARG(QVariant, QVariant(100)));
+                }
 
-            // Dodaj suwak poniżej mapy z odpowiednią wagą (0) i stałą wysokością
-            vboxLayout->addWidget(slider, 0);
-            slider->setMinimumHeight(50);  // Stała wysokość suwaka
-            slider->setMaximumHeight(50);  // Zapobiega rozciąganiu suwaka
-            slider->setVisible(true);
+                // Ustaw widoczność suwaka dopiero po osiągnięciu statusu Ready
+                slider->setVisible(true);
+            }
+        });
+    } else {
+        // Jeśli slider już istnieje, resetuj wartości od razu
+        QObject *sliderObject = slider->rootObject();
+        if (sliderObject) {
+            QMetaObject::invokeMethod(sliderObject, "setFirstValue", Q_ARG(QVariant, QVariant(0)));
+            QMetaObject::invokeMethod(sliderObject, "setSecondValue", Q_ARG(QVariant, QVariant(100)));
         }
-    });
+
+        // Ustaw widoczność suwaka
+        slider->setVisible(true);
+    }
+
+    // Dodaj suwak poniżej mapy z odpowiednią wagą (0) i stałą wysokością
+    vboxLayout->addWidget(slider, 0);
+    slider->setMinimumHeight(50);  // Stała wysokość suwaka
+    slider->setMaximumHeight(50);  // Zapobiega rozciąganiu suwaka
 }
+
+
 
 
 void MainWindow::showMapInTimeline()

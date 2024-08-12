@@ -245,10 +245,30 @@ void MainWindow::loadDataForSelectedDate(const QDate &selectedDate) {
                      << QString::number(data.latitude, 'f', 6)
                      << QString::number(data.longitude, 'f', 6);
         }
+
+        // Przygotuj skrypt JavaScript do rysowania trasy
+        if (!locationDataList.isEmpty()) {
+            QStringList coordinates;
+            for (const auto &data : locationDataList) {
+                QString coord = QString("[%1, %2]").arg(data.latitude, 0, 'f', 6).arg(data.longitude, 0, 'f', 6);
+                coordinates.append(coord);
+            }
+
+            QString jsScript = QString("drawPath([%1]);").arg(coordinates.join(", "));
+            connect(viewTimeline, &QWebEngineView::loadFinished, this, [this, jsScript](bool ok) {
+                if (ok) {
+                    viewTimeline->page()->runJavaScript(jsScript);
+                } else {
+                    qDebug() << "Failed to load the map.";
+                }
+            });
+        }
     } else {
         qDebug() << "Błąd podczas wykonywania zapytania SQL: " << query.lastError().text();
     }
 }
+
+
 
 void MainWindow::onDateClicked(const QDate &date) {
     if (!availableDates.contains(date)) {
@@ -417,3 +437,4 @@ void MainWindow::onCurrentPageChanged(int year, int month)
 {
     updateCalendar(year, month);
 }
+

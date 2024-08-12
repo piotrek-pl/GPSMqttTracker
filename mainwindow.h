@@ -71,6 +71,8 @@ private:
     void showMapInTimeline();
 
     void loadDataForSelectedDate(const QDate &selectedDate);
+
+    void drawRouteOnMap();
 };
 
 #endif // MAINWINDOW_H

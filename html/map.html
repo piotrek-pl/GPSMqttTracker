@@ -3,7 +3,7 @@
 <head>
     <title>Google Map</title>
     <script async
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB8KHhBQ3Xcl0MRXwxh1DBoHjNH1ALCIuQ&callback=initMap&libraries=places,marker&loading=async">
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB8KHhBQ3Xcl0MRXwxh1DBoHjNH1ALCIuQ&callback=initMap&libraries=places&loading=async">
     </script>
     <script type="text/javascript">
         let map;
@@ -14,7 +14,7 @@
         function initMap() {
             const initialPosition = { lat: 51.812859, lng: 19.501045 }; // Initial map center
             const mapOptions = {
-                zoom: 8,
+                zoom: 14,
                 center: initialPosition,
                 mapId: '239248ea36b6458c' // Add your Map ID here
             };
@@ -25,12 +25,12 @@
             const newPosition = { lat: lat, lng: lng };
 
             if (!marker) {
-                marker = new google.maps.marker.AdvancedMarkerElement({
+                marker = new google.maps.Marker({
                     position: newPosition,
                     map: map
                 });
             } else {
-                marker.position = newPosition;
+                marker.setPosition(newPosition);
             }
 
             map.setCenter(newPosition);
@@ -57,8 +57,10 @@
             });
 
             polyline.setMap(map);
-            map.setCenter(pathCoordinates[0]); // Center the map on the first coordinate
-            map.setZoom(12); // Adjust zoom level as necessary
+            if (pathCoordinates.length > 0) {
+                map.setCenter(pathCoordinates[0]); // Center the map on the first coordinate
+                map.setZoom(18); // Adjust zoom level as necessary
+            }
         }
 
         window.showDisconnectedMessage = function() {

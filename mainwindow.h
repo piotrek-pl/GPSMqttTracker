@@ -27,6 +27,9 @@ public:
     explicit MainWindow(QMqttClient *client, const QString &username, const QString &password, QWidget *parent = nullptr);
     ~MainWindow();
 
+public slots:
+    void updateRoutes(int startSeconds, int endSeconds);
+
 private slots:
     void cleanup(); // Metoda czyszcząca
     void onMessageReceived(const QMqttMessage &message); // Slot do obsługi wiadomości

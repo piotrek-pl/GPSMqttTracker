@@ -13,6 +13,7 @@
 #include <QDebug>
 #include <QQmlContext>
 #include <QQuickItem>
+#include <QQmlEngine>
 
 const int MainWindow::connectionTimeout = 5; // Inicjalizacja zmiennej statycznej
 const QString MainWindow::DATABASE_NAME = "GPS"; // Stała dla nazwy bazy danych
@@ -281,6 +282,9 @@ void MainWindow::onDateClicked(const QDate &date) {
     // Ukryj kalendarz po wybraniu daty
     calendarWidget->setVisible(false);
 
+    // Resetowanie flagi initialLoad w JavaScript
+    viewTimeline->page()->runJavaScript("initialLoad = true;");
+
     // Usuń istniejące widżety, aby upewnić się, że są one dodane w odpowiedniej kolejności
     while (timelineLayout->count() > 0) {
         QWidget *widget = timelineLayout->takeAt(0)->widget();
@@ -304,12 +308,14 @@ void MainWindow::onDateClicked(const QDate &date) {
         slider->setSource(QUrl(QStringLiteral("qrc:/qml/RangeSlider.qml")));
         slider->setResizeMode(QQuickWidget::SizeRootObjectToView);
 
+        // Przekazanie wskaźnika do MainWindow do kontekstu QML
+        slider->engine()->rootContext()->setContextProperty("mainWindow", this);
+
         connect(slider, &QQuickWidget::statusChanged, this, [this]() {
             if (slider->status() == QQuickWidget::Ready) {
                 QObject *sliderObject = slider->rootObject();
                 if (sliderObject) {
-                    QMetaObject::invokeMethod(sliderObject, "setFirstValue", Q_ARG(QVariant, QVariant(0)));
-                    QMetaObject::invokeMethod(sliderObject, "setSecondValue", Q_ARG(QVariant, QVariant(100)));
+                    QMetaObject::invokeMethod(sliderObject, "resetValues");
                 }
                 slider->setVisible(true);
             }
@@ -317,8 +323,7 @@ void MainWindow::onDateClicked(const QDate &date) {
     } else {
         QObject *sliderObject = slider->rootObject();
         if (sliderObject) {
-            QMetaObject::invokeMethod(sliderObject, "setFirstValue", Q_ARG(QVariant, QVariant(0)));
-            QMetaObject::invokeMethod(sliderObject, "setSecondValue", Q_ARG(QVariant, QVariant(100)));
+            QMetaObject::invokeMethod(sliderObject, "resetValues");
         }
 
         slider->setVisible(true);
@@ -331,6 +336,10 @@ void MainWindow::onDateClicked(const QDate &date) {
     slider->setMinimumHeight(50);
     slider->setMaximumHeight(50);
 }
+
+
+
+
 
 
 
@@ -436,5 +445,30 @@ void MainWindow::disableUnavailableDates()
 void MainWindow::onCurrentPageChanged(int year, int month)
 {
     updateCalendar(year, month);
+}
+
+void MainWindow::updateRoutes(int startSeconds, int endSeconds) {
+    // Przekształć sekundy na QTime, aby łatwiej porównywać zakresy czasowe
+    QTime startTime = QTime::fromMSecsSinceStartOfDay(startSeconds * 1000);
+    QTime endTime = QTime::fromMSecsSinceStartOfDay(endSeconds * 1000);
+
+    QList<LocationData> filteredData;
+
+    for (const auto &data : locationDataList) {
+        QTime dataTime = data.localTime.time();
+        if (dataTime >= startTime && dataTime <= endTime) {
+            filteredData.append(data);
+        }
+    }
+
+    // Przekaż przefiltrowane dane do wyświetlenia na mapie
+    QStringList coordinates;
+    for (const auto &data : filteredData) {
+        QString coord = QString("[%1, %2]").arg(data.latitude, 0, 'f', 6).arg(data.longitude, 0, 'f', 6);
+        coordinates.append(coord);
+    }
+
+    QString jsScript = QString("drawPath([%1]);").arg(coordinates.join(", "));
+    viewTimeline->page()->runJavaScript(jsScript);
 }
 

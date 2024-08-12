@@ -10,6 +10,7 @@
         let marker;
         let pathCoordinates = [];
         let polyline;
+        let initialLoad = true; // Flaga do sprawdzenia, czy mapa jest ładowana po raz pierwszy
 
         function initMap() {
             const initialPosition = { lat: 51.812859, lng: 19.501045 }; // Initial map center
@@ -57,9 +58,12 @@
             });
 
             polyline.setMap(map);
-            if (pathCoordinates.length > 0) {
+
+            // Center the map on the first coordinate only when the map is first loaded
+            if (initialLoad && pathCoordinates.length > 0) {
                 map.setCenter(pathCoordinates[0]); // Center the map on the first coordinate
                 map.setZoom(18); // Adjust zoom level as necessary
+                initialLoad = false; // Set the flag to false after the first load
             }
         }
 

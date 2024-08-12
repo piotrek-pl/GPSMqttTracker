@@ -1,5 +1,5 @@
 import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick.Controls 2.5
 
 RangeSlider {
     id: slider
@@ -19,5 +19,17 @@ RangeSlider {
     function setSecondValue(value) {
         console.log("Setting second.value to", value);
         second.value = value;
+    }
+
+    // Reagowanie na ruch dolnym ogranicznikiem
+    first.onMoved: {
+        console.log("First handle moved. New value: " + first.value);
+        // Tutaj możesz dodać dodatkową logikę, którą chcesz wykonać
+    }
+
+    // Reagowanie na ruch górnym ogranicznikiem
+    second.onMoved: {
+        console.log("Second handle moved. New value: " + second.value);
+        // Tutaj możesz dodać dodatkową logikę, którą chcesz wykonać
     }
 }

@@ -69,6 +69,8 @@ private:
     QDateTime convertUtcToLocal(const QDateTime &utcDateTime); // Funkcja konwertująca czas z UTC na czas lokalny
     void disableUnavailableDates(); // Funkcja wyłączająca niedostępne daty
     void showMapInTimeline();
+
+    void loadDataForSelectedDate(const QDate &selectedDate);
 };
 
 #endif // MAINWINDOW_H

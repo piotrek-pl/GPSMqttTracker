@@ -40,7 +40,7 @@ else()
 endif()
 
 # Kopiowanie pliku map.html do katalogu wyjściowego
-configure_file(map.html ${CMAKE_CURRENT_BINARY_DIR}/map.html COPYONLY)
+configure_file(html/map.html ${CMAKE_CURRENT_BINARY_DIR}/map.html COPYONLY)
 
 target_link_libraries(GPSMqttTracker PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
